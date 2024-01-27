@@ -235,23 +235,15 @@ func main() {
                     <th>Paid due</th>
                     <th>Balance</th>
                 </tr>
+				{{range .}}
             </thead>
             <tbody>
                 <tr>
-                    <td>Opening Balance</td>
-                    <td>$100.00</td>
-                </tr>
-                <tr>
-                    <td>Payments in</td>
-                    <td>$200.00</td>
-                </tr>
-                <tr>
-                    <td>Payments out</td>
-                    <td>$200.00</td>
-                </tr>
-                <tr>
-                    <td>Closing Balance</td>
-                    <td>$200.00</td>
+                  <td>{{.date}}</td>
+				<td>{{.paymentDaetails.details}}</td>
+				<td>{{.paidEst}}</td>
+				<td>{{.paidDue}}</td>
+				<td>{{.balance}}</td>
                 </tr>
                 <tr>
             </tbody>
@@ -260,7 +252,6 @@ func main() {
 </body>
 
 </html>
-
 	`
 
 	// render the HTML template on the index route
@@ -313,13 +304,7 @@ func main() {
 		w.Header().Set("Content-Disposition", "attachment; filename=statement.pdf")
 		w.Write(pdf)
 	})
-	// println("listening on port", os.Getenv("PORT"))
-	// http.ListenAndServe(":"+os.Getenv("PORT"), nil)
-	println("listening on port", 8080)
-	http.ListenAndServe("localhost:8080", nil)
-}
+	println("listening on port", os.Getenv("PORT"))
+	http.ListenAndServe(":"+os.Getenv("PORT"), nil)
 
-//err := router.Run("localhost:8080")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+}
