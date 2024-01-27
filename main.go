@@ -21,13 +21,6 @@ type AccountStatements struct {
 	Balance            string `json:"balance"`
 }
 
-type Person struct {
-	FirstName string
-	LastName  string
-	JobTitle  string
-	Skills    []string
-}
-
 func GeneratePDF(htmlTemplate string, statement *AccountStatements) ([]byte, error) {
 	var htmlBuffer bytes.Buffer
 	err := template.Must(template.New("statement").
