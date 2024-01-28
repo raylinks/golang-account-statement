@@ -13,6 +13,9 @@ import (
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
 )
 
+// define the path of the wkhtmltopdf
+const path = "/usr/local/bin/wkhtmltopdf"
+
 type AccountStatements struct {
 	Date               string `json:"date"`
 	PaymentTypeDetails string `json:"paymentTypeDetails"`
@@ -21,21 +24,33 @@ type AccountStatements struct {
 	Balance            string `json:"balance"`
 }
 
-func GeneratePDF(htmlTemplate string, statement *AccountStatements) ([]byte, error) {
+type Person struct {
+	FirstName string
+	LastName  string
+	JobTitle  string
+	Skills    []string
+}
+
+func GeneratePDF(htmlTemplate string, person *Person) ([]byte, error) {
 	var htmlBuffer bytes.Buffer
 	err := template.Must(template.New("statement").
 		Parse(htmlTemplate)).
-		Execute(&htmlBuffer, statement)
+		Execute(&htmlBuffer, person)
 	if err != nil {
 		return nil, err
 	}
+
+	// set the predefined path in the wkhtmltopdf's global state
+	wkhtmltopdf.SetPath(path)
 
 	// Initialize the converter
 	pdfGen, err := wkhtmltopdf.NewPDFGenerator()
 	if err != nil {
 		return nil, err
 	}
+
 	page := wkhtmltopdf.NewPageReader(bytes.NewReader(htmlBuffer.Bytes()))
+	page.EnableLocalFileAccess.Set(true)
 	pdfGen.AddPage(page)
 
 	// Set PDF page attributes
@@ -55,12 +70,17 @@ func GeneratePDF(htmlTemplate string, statement *AccountStatements) ([]byte, err
 }
 
 func main() {
-	person := &AccountStatements{
-		Date:               "01/04/2023",
-		PaymentTypeDetails: "VOUCHER",
-		PaidEst:            "2000",
-		PaidDue:            "5400",
-		Balance:            "7234",
+	person := &Person{
+		FirstName: "Simon Peter",
+		LastName:  "Damian",
+		JobTitle:  "Software Developer",
+
+		Skills: []string{
+			"Go",
+			"Ruby",
+			"Python",
+			"JavaScript",
+		},
 	}
 	htmlTemplate := `
 		<!DOCTYPE html>
@@ -137,7 +157,7 @@ func main() {
 </head>
 
 <body>
-    <img src="../bird.svg" alt="SVG Image">
+    <img src="png.jpeg" >
     <div class="letter-container">
 
         <div class="address left-address">
@@ -228,30 +248,53 @@ func main() {
                     <th>Paid due</th>
                     <th>Balance</th>
                 </tr>
-				{{range .}}
+				
             </thead>
-            <tbody>
-                <tr>
-                  <td>{{.date}}</td>
-				<td>{{.paymentDaetails.details}}</td>
-				<td>{{.paidEst}}</td>
-				<td>{{.paidDue}}</td>
-				<td>{{.balance}}</td>
+             <tbody>
+               <tr>
+                    <td>{{.date}}</td>
+                    <td>{{.paymentTypeDetails}}</td>
+                    <td>{{.paidEst}}</td>
+                    <td>{{.paidDue}}</td>
+                    <td>{{.balance}}</td>
                 </tr>
-                <tr>
+               
             </tbody>
         </table>
     </div>
 </body>
 
 </html>
+
+	`
+
+	htmlTemplate2 := `
+		<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+		</head>
+		<body>
+			<h1>{{.FirstName}} {{.LastName}}</h1>
+			<p>{{.JobTitle}}</p>
+
+			<h2>Skills</h2>
+			<ul>
+				{{range .Skills}}
+				<li>{{.}}</li>
+				{{end}}
+			</ul>
+
+			<a href="/download">Download PDF</a>
+		</body>
+		</html>
 	`
 
 	// render the HTML template on the index route
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		err := template.Must(template.New("statement").
-			Parse(htmlTemplate)).
+		err := template.Must(template.New("profile").
+			Parse(htmlTemplate2)).
 			Execute(w, person)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -294,9 +337,10 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "application/pdf")
-		w.Header().Set("Content-Disposition", "attachment; filename=statement.pdf")
+		w.Header().Set("Content-Disposition", "attachment; filename=account-statement.pdf")
 		w.Write(pdf)
 	})
+
 	println("listening on port", os.Getenv("PORT"))
 	http.ListenAndServe(":"+os.Getenv("PORT"), nil)
 
